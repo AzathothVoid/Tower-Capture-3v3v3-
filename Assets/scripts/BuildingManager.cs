@@ -8,7 +8,7 @@ public class BuildingManager : MonoBehaviourPun
 
     [SerializeField] public List<TeamBuilding> TeamBuildings;
     //public int[] cathedralBuildingIDS = new int[]{6, 7, 8};
-    public Dictionary<int, int> cathedralBuildingIDS = new Dictionary<int, int> { { 6, 0 }, { 7, 1 }, {8 ,2 } };
+    [SerializeField] public Dictionary<int, int> cathedralBuildingIDS = new Dictionary<int, int> { { 6, 0 }, { 7, 1 }, {8 ,2 } };
 
     void Awake()
     {
