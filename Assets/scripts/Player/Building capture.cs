@@ -42,14 +42,15 @@ public class BuildingCapture : MonoBehaviourPun
     {
         ConfigureCollider();
         InitializeAudio();
-        if (BuildingManager.Instance.cathedralBuildingIDS.ContainsKey(buildingID))
+        if (BuildingManager.Instance.CathedralBuildingIDs.ContainsKey(buildingID))
         {
-            int owner = BuildingManager.Instance.cathedralBuildingIDS[buildingID];
+            int owner = BuildingManager.Instance.CathedralBuildingIDs[buildingID];
             capturingID = owner;
             controllingTeam = owner;
             isCaptured = true;
-            captureProgress = 100f;
-        }else 
+            captureProgress = captureThreshold;
+        }
+        else
             ResetFlag();
         Debug.Log($"[BuildingCapture] Building ready with capturingID {capturingID}. Waiting for rightful team to show up.");
     }
@@ -119,8 +120,9 @@ public class BuildingCapture : MonoBehaviourPun
     void HandleCapturedState()
     {
         bool enemyPresent = playersInZone.Any(p => p.teamID != controllingTeam);
+        bool teamMemberPresent = playersInZone.Any(p => p.teamID == controllingTeam);
 
-        if (enemyPresent)
+        if (enemyPresent && !teamMemberPresent)
         {
             if (!isDecaying)
             {
@@ -155,8 +157,6 @@ public class BuildingCapture : MonoBehaviourPun
     }
 
 
-
-
     void StartDecay()
     {
         isDecaying = true;
@@ -185,6 +185,7 @@ public class BuildingCapture : MonoBehaviourPun
     }
 
     // Kept the old recapture method, though now it's not used directly.
+    [PunRPC]
     void RecaptureBuilding()
     {
         controllingTeam = -1;
@@ -204,9 +205,16 @@ public class BuildingCapture : MonoBehaviourPun
 
     void CalculateCaptureProgress()
     {
-        var eligiblePlayers = playersInZone.Where(p => p.teamID == capturingID).ToList();
+        if (capturingID == -1 && playersInZone.Count != 0)
+        {
+            capturingID = playersInZone[0].teamID;
+            captureProgress = 0;
+        }
 
-        if (eligiblePlayers.Any())
+        var eligiblePlayers = playersInZone.Where(p => p.teamID == capturingID).ToList();
+        var enemyPlayers = playersInZone.Any(p => p.teamID != capturingID);
+
+        if (eligiblePlayers.Any() && !enemyPlayers)
         {
             int count = eligiblePlayers.Count;
             float contribution = count * baseCaptureRate * Time.deltaTime;
@@ -230,7 +238,7 @@ public class BuildingCapture : MonoBehaviourPun
         }
         else
         {
-            ApplyDecay();
+            //ApplyDecay();
 
             // Stop the capturing sound if no eligible players are capturing
             if (audioSource.isPlaying)
@@ -305,37 +313,13 @@ public class BuildingCapture : MonoBehaviourPun
         if (controllingTeam == -1)
             return;
 
-        TeamBuilding tempBuilding = BuildingManager.Instance.TeamBuildings[controllingTeam];
-
-        if (tempBuilding.AdjacentBuildings == null || tempBuilding.AdjacentBuildings.Count == 0)
-        {
-            Debug.LogError($"[ERROR] AdjacentBuildings list is NULL or EMPTY for teamID: {controllingTeam}");
-            return;
-        }
-
-        if (tempBuilding.buildingID == buildingID)
-            BuildingManager.Instance.CaptureBuilding(controllingTeam, buildingID, value, BUILDINGTYPE.MAIN);
-        else if (tempBuilding.EnemyBuildings.Contains(buildingID))
-            BuildingManager.Instance.CaptureBuilding(controllingTeam, buildingID, value, BUILDINGTYPE.ENEMYMAIN);
-        else
-        {
-            for (int i = 0; i < tempBuilding.AdjacentBuildings.Count; i++)
-            {
-                AdjacentBuilding adjacent = tempBuilding.AdjacentBuildings[i];
-
-                if (adjacent.buildingID == buildingID)
-                {
-                    BuildingManager.Instance.CaptureBuilding(controllingTeam, i, value, BUILDINGTYPE.ADJACENT);
-                }
-
-            }
-        }
+        BuildingManager.Instance.UpdateTowerDictionary(value, controllingTeam, buildingID);
     }
 
     [PunRPC]
     void RPC_CompleteCapture(int teamID)
     {
-        Material mat = GetTeamMaterial(teamID);    
+        Material mat = GetTeamMaterial(teamID);
 
         if (flagRenderer)
         {
@@ -365,64 +349,34 @@ public class BuildingCapture : MonoBehaviourPun
         var player = other.GetComponent<PlayerTeam>();
         if (player)
         {
-            // CHECK HERE IF THE PLAYER IS ELIGIBLE TO CAPTURE THE BUILDING
-            if (player.teamID == buildingID && BuildingManager.Instance.TeamBuildings[player.teamID].isCaptured)
-                return;
-            else if (player.teamID != buildingID)
+
+            var adjacents = BuildingManager.Instance.TowerDictionary[buildingID].Adjacents;
+
+            bool adjacentCaptured = false;
+
+            foreach (var adjacent in adjacents)
             {
-                if (!BuildingManager.Instance.TeamBuildings[player.teamID].isCaptured)
-                    return;
+                TowerData adjacentTowerData = BuildingManager.Instance.TowerDictionary[adjacent];
 
-                if (BuildingManager.Instance.cathedralBuildingIDS.ContainsKey(buildingID) && BuildingManager.Instance.cathedralBuildingIDS[buildingID] != player.teamID)
+                if (adjacentTowerData.isCaptured && adjacentTowerData.controllingTeam == player.teamID)
                 {
-                    bool adjacents = AdjacentsFound(player, BuildingManager.Instance.cathedralBuildingIDS[buildingID]);
-
-                    if (!adjacents)
-                        return;
-
-                    if (!BuildingManager.Instance.TeamBuildings[player.teamID].EnemyBuildingsCaptured[BuildingManager.Instance.cathedralBuildingIDS[buildingID]])
-                    {
-                        Debug.Log($"[BuildingManager] Opponent Tier 1 Building not Captured: {BuildingManager.Instance.TeamBuildings[BuildingManager.Instance.cathedralBuildingIDS[buildingID]].isCaptured}");
-                        return;
-                    }
-                }
-
-                if (BuildingManager.Instance.TeamBuildings[player.teamID].EnemyBuildings.Contains(buildingID))
-                {
-                    bool adjacents = AdjacentsFound(player, buildingID);
-
-                    if (!adjacents)
-                        return;
-                    /*List<AdjacentBuilding> adjacents = BuildingManager.Instance.TeamBuildings[player.teamID].AdjacentBuildings;
-
-                    for (int i = 0; i < adjacents.Count; i++)
-                    {
-                        Debug.Log($"[BuildingManager] Adjacent Found: {adjacents[i].buildingID}");
-                        if (adjacents[i].teamID == buildingID && adjacents[i].isCaptured)
-                        {
-                            Debug.Log($"[BuildingManager] Adjacent Captured: {adjacents[i].buildingID}");
-                            break;                            
-                        } else if (adjacents[i].teamID != buildingID)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            Debug.Log($"[BuildingManager] Building ID: {buildingID} , Adjacent Team ID : {adjacents[i].teamID}");
-                            Debug.Log($"[BuildingManager] Adjacent Captured : {adjacents[i].isCaptured}");
-                            Debug.Log($"[BuildingManager] Adjacent Not Captured: {adjacents[i].buildingID}");
-                            return;
-                        }
-                    }*/
+                    //Debug.Log($"[OnTriggerEnter] Captured Adjacent Detected: {}.");
+                    adjacentCaptured = true;
+                    break;
                 }
             }
 
+            if (adjacentCaptured == false)
+                return;
+
+            if (capturingID == -1)
+                capturingID = player.teamID;
+
             // NEW: No immediate reset if enemy enters; the recapture decay is now handled in HandleCapturedState.
-            // We still update the capturingID if needed.
-            capturingID = player.teamID;
+            // We still update the capturingID if needed.            
             photonView.RPC("RPC_UpdateCapturingID", RpcTarget.MasterClient, player.teamID);
 
-            if (player.teamID == capturingID && player.photonView.IsMine)
+            if (player.photonView.IsMine)
             {
                 Debug.Log($"[OnTriggerEnter] Player from team {player.teamID} entered zone and matches capturingID {capturingID}.");
                 Debug.Log($"[OnTriggerEnter] Player's PhotonView ViewID: {player.photonView.ViewID}");
@@ -440,43 +394,16 @@ public class BuildingCapture : MonoBehaviourPun
         var player = other.GetComponent<PlayerTeam>();
         if (player && player.photonView.IsMine)
         {
-            if (player.teamID == capturingID)
+            photonView.RPC("RPC_RemoveFromZone", RpcTarget.MasterClient, player.photonView.ViewID);
+            /*if (player.teamID == capturingID)
             {
                 Debug.Log($"[OnTriggerExit] Player from team {player.teamID} left zone (matched capturingID).");
-                photonView.RPC("RPC_RemoveFromZone", RpcTarget.MasterClient, player.photonView.ViewID);
             }
             else
             {
                 Debug.Log($"[OnTriggerExit] Player from team {player.teamID} left zone (ignored, as capturingID is {capturingID}).");
-            }
+            }*/
         }
-    }
-    bool AdjacentsFound(PlayerTeam player, int buildingIndex)
-    {
-        List<AdjacentBuilding> adjacents = BuildingManager.Instance.TeamBuildings[player.teamID].AdjacentBuildings;
-
-        for (int i = 0; i < adjacents.Count; i++)
-        {
-            Debug.Log($"[BuildingManager] Adjacent Found: {adjacents[i].buildingID}");
-            if (adjacents[i].teamID == buildingIndex && adjacents[i].isCaptured)
-            {
-                Debug.Log($"[BuildingManager] Adjacent Captured: {adjacents[i].buildingID}");
-                return true;
-            }
-            else if (adjacents[i].teamID != buildingIndex)
-            {
-                continue;
-            }
-            else
-            {
-                Debug.Log($"[BuildingManager] Building ID: {buildingID} , Adjacent Team ID : {adjacents[i].teamID}");
-                Debug.Log($"[BuildingManager] Adjacent Captured : {adjacents[i].isCaptured}");
-                Debug.Log($"[BuildingManager] Adjacent Not Captured: {adjacents[i].buildingID}");
-                return false;
-            }
-        }
-
-        return false;
     }
 
     [PunRPC]
@@ -523,6 +450,13 @@ public class BuildingCapture : MonoBehaviourPun
         if (pt && playersInZone.Contains(pt))
         {
             playersInZone.Remove(pt);
+
+            if (!playersInZone.Any(p => p.teamID == capturingID))
+            {
+                capturingID = -1;
+                captureProgress = 0;
+            }
+
             Debug.Log($"[RPC_RemoveFromZone] Removed player (Team {pt.teamID}) from zone.");
         }
         else
@@ -564,6 +498,8 @@ public class BuildingCapture : MonoBehaviourPun
             Debug.Log("[RPC_PlayCapturedSound] Played captured sound.");
         }
     }
+
+    [PunRPC]
     void RPC_PlayRecaptureSound()
     {
         if (audioSource && capturingSound)

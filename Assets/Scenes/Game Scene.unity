@@ -13791,64 +13791,80 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2ebc209a4895674bbc889ad5939509a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  TeamBuildings:
-  - Building: {fileID: 1570160651}
-    _buildingScript: {fileID: 0}
-    EnemyBuildings: 0100000002000000
-    EnemyBuildingsCaptured: 000000
-    AdjacentBuildings:
-    - Building: {fileID: 2631773796688375263}
-      _buildingScript: {fileID: 0}
-      teamID: 1
-      buildingID: 3
-      isCaptured: 0
-    - Building: {fileID: 1743168122}
-      _buildingScript: {fileID: 0}
-      teamID: 2
-      buildingID: 5
-      isCaptured: 0
-    teamID: 0
-    buildingID: 0
-    cathedralID: 6
-    isCaptured: 0
-  - Building: {fileID: 703997271}
-    _buildingScript: {fileID: 0}
-    EnemyBuildings: 0000000002000000
-    EnemyBuildingsCaptured: 000000
-    AdjacentBuildings:
-    - Building: {fileID: 2631773796688375263}
-      _buildingScript: {fileID: 0}
-      teamID: 0
-      buildingID: 3
-      isCaptured: 0
-    - Building: {fileID: 1453579674}
-      _buildingScript: {fileID: 0}
-      teamID: 2
-      buildingID: 4
-      isCaptured: 0
-    teamID: 1
-    buildingID: 1
-    cathedralID: 7
-    isCaptured: 0
-  - Building: {fileID: 962459634}
-    _buildingScript: {fileID: 0}
-    EnemyBuildings: 0000000001000000
-    EnemyBuildingsCaptured: 000000
-    AdjacentBuildings:
-    - Building: {fileID: 1743168122}
-      _buildingScript: {fileID: 0}
-      teamID: 0
-      buildingID: 5
-      isCaptured: 0
-    - Building: {fileID: 1453579674}
-      _buildingScript: {fileID: 0}
-      teamID: 1
-      buildingID: 4
-      isCaptured: 0
-    teamID: 2
-    buildingID: 2
-    cathedralID: 8
-    isCaptured: 0
+  TowerDictionary:
+    dictionaryList:
+    - Key: 0
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 0
+        controllingTeam: -1
+        Adjacents: 060000000300000005000000
+      index: 0
+      isKeyDuplicated: 0
+    - Key: 1
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 0
+        controllingTeam: -1
+        Adjacents: 070000000300000004000000
+      index: 1
+      isKeyDuplicated: 0
+    - Key: 2
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 0
+        controllingTeam: -1
+        Adjacents: 080000000400000005000000
+      index: 2
+      isKeyDuplicated: 0
+    - Key: 3
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 0
+        controllingTeam: -1
+        Adjacents: 0000000001000000
+      index: 3
+      isKeyDuplicated: 0
+    - Key: 4
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 0
+        controllingTeam: -1
+        Adjacents: 0100000002000000
+      index: 4
+      isKeyDuplicated: 0
+    - Key: 5
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 0
+        controllingTeam: -1
+        Adjacents: 0000000002000000
+      index: 5
+      isKeyDuplicated: 0
+    - Key: 6
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 1
+        controllingTeam: 0
+        Adjacents: 00000000
+      index: 6
+      isKeyDuplicated: 0
+    - Key: 7
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 1
+        controllingTeam: 1
+        Adjacents: 01000000
+      index: 7
+      isKeyDuplicated: 0
+    - Key: 8
+      Value:
+        Building: {fileID: 0}
+        isCaptured: 1
+        controllingTeam: 2
+        Adjacents: 02000000
+      index: 8
+      isKeyDuplicated: 0
 --- !u!4 &822750204
 Transform:
   m_ObjectHideFlags: 0
